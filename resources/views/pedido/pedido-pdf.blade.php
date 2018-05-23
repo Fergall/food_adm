@@ -64,7 +64,7 @@
                   @endforeach
 
                   <div class="col-sm-12">
-                     <h5>Total: </b>{{$detalle->detalle_pedido_total}}</h5>
+                     <h3>Total: </b>{{$detalle->detalle_pedido_total}}</h3>
                   </div>
 
                   <div>
