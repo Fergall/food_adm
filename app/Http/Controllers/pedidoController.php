@@ -305,6 +305,8 @@ class pedidoController extends Controller
       //$detalle->detalle_pedido_hora_pedido = $hora->toDateTimeString();
 
 
+
+
       $listaPedidos = DB::table('detalle_pedido')
           ->whereBetween('detalle_pedido_hora_pedido', array($fechaInicio, $fechaFin))
           ->join('users', 'detalle_pedido.usuario_idusuario', '=', 'users.id')
@@ -313,18 +315,65 @@ class pedidoController extends Controller
           ->select('*')
           ->get();
 
+      $listaEstadisticaPromocion = DB::table('detalle_pedido')
+          ->groupby('idpromocion')
+          ->whereRaw("`detalle_pedido_hora_pedido` between '$fechaInicio' and '$fechaFin'")
+          ->join('rel_prom_detalle', 'detalle_pedido.iddetalle_pedido', '=', 'rel_prom_detalle.detalle_pedido_iddetalle_pedido')
+          ->join('promocion', 'rel_prom_detalle.promocion_idpromocion', '=', 'promocion.idpromocion')
+          ->select(
+                    DB::raw('*, idpromocion, promocion_nombre as nombre, sum(cant_prom_detalle) as amount')
+                    )
+          ->get();
+
+      $listaEstadisticaPedido = DB::table('detalle_pedido')
+          ->groupby('idproducto')
+          ->whereRaw("`detalle_pedido_hora_pedido` between '$fechaInicio' and '$fechaFin'")
+          ->join('rel_prod_detalle', 'detalle_pedido.iddetalle_pedido', '=', 'rel_prod_detalle.detalle_pedido_iddetalle_pedido')
+          ->join('producto', 'rel_prod_detalle.producto_idproducto', '=', 'producto.idproducto')
+          ->select(
+                    DB::raw('*, idproducto, producto_nombre as nombre, sum(cant_prod_detalle) as amount')
+                    )
+          ->get();
+
+
+
       foreach ($listaPedidos as $lista) {
           $lista->detalle_pedido_hora_pedido = Carbon::parse($lista->detalle_pedido_hora_pedido);
           $lista->detalle_pedido_hora_entrega = Carbon::parse($lista->detalle_pedido_hora_entrega);
 
       }
 
+      foreach ($listaEstadisticaPedido as $lista) {
+          $lista->detalle_pedido_hora_pedido = Carbon::parse($lista->detalle_pedido_hora_pedido);
+          $lista->detalle_pedido_hora_entrega = Carbon::parse($lista->detalle_pedido_hora_entrega);
 
-      \Excel::create('listado-de-pedidos', function($excel) use($listaPedidos, $fechaFin, $fechaInicio) {
+      }
 
-          $excel->sheet('Hoja1', function($sheet) use($listaPedidos, $fechaFin, $fechaInicio) {
+      foreach ($listaEstadisticaPromocion as $lista) {
+          $lista->detalle_pedido_hora_pedido = Carbon::parse($lista->detalle_pedido_hora_pedido);
+          $lista->detalle_pedido_hora_entrega = Carbon::parse($lista->detalle_pedido_hora_entrega);
+
+      }
+
+
+      \Excel::create('listado-de-pedidos', function($excel) use($listaPedidos, $fechaFin, $fechaInicio,
+      $listaEstadisticaPromocion, $listaEstadisticaPedido) {
+
+          $excel->sheet('Pedidos', function($sheet) use($listaPedidos, $fechaFin, $fechaInicio) {
 
               $sheet->loadView('pedido.excel-pedidos', array('pedidos' => $listaPedidos,'fechaInicio' => $fechaInicio, 'fechaFin' => $fechaFin));
+
+          });
+
+          $excel->sheet('Estadisticas Pedidos', function($sheet) use($listaEstadisticaPedido, $fechaFin, $fechaInicio) {
+
+              $sheet->loadView('pedido.excel-estadisticas', array('listaEstadistica' => $listaEstadisticaPedido,'fechaInicio' => $fechaInicio, 'fechaFin' => $fechaFin));
+
+          });
+
+          $excel->sheet('Estadisticas Promocion', function($sheet) use($listaEstadisticaPromocion, $fechaFin, $fechaInicio) {
+
+              $sheet->loadView('pedido.excel-estadisticas', array('listaEstadistica' => $listaEstadisticaPromocion,'fechaInicio' => $fechaInicio, 'fechaFin' => $fechaFin));
 
           });
 
