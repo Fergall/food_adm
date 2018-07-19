@@ -12,7 +12,7 @@
                   </div>
 
                   <div >
-                     <h6><b>Entrega de pedido: </b>{{ $detalle->detalle_pedido_hora_entrega }}</h6>
+                     <h6><b>Entrega de pedido: </b>{{ $detalle->detalle_pedido_hora_entrega->format('G:i') }}</h6>
                   </div>
 
                   <div>
